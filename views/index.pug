@@ -1,0 +1,196 @@
+doctype html
+html
+  head
+    meta(http-equiv='Content-Type', content='text/html; charset=UTF-8')
+    meta(charset='utf-8')
+    title Welcome
+    link(href='bootstrap.min.css', rel='stylesheet')
+  body
+    script(type='text/javascript', src='jquery-3.1.1.min.js')
+    script(type='text/javascript', src='drawSVG.js')
+    script(type='text/javascript', src='dbQueries.js')
+    .container
+      .row
+        .col-lg-9
+          p(style='color:grey')
+            | Imagine a Tech Park with 4 towers. This project tries to model it using MongoDB.
+            br
+            br
+            |  Each tower has different number of floors and each floor has a fixed number of units. Each unit can be vacant or owned by a company.
+            br
+            |  The vacant units are in black while the rest are in green.
+            br
+            br
+            |  When you click on a query, the units that are there in the result, or the ones related to the result turn yellow. For example, the second query, &quot;Top 10 companies with max number of units&quot;, will show the units owned by those companies.
+            br
+            br
+            |  Scroll down to see the MongoDB queries and their results
+          svg#asvg(width='800', height='500', style='border: medium solid; background: rgb(51, 31, 98) none repeat scroll 0% 0%;')
+        .col-lg-3(style='position: relative; margin-top: 15rem')
+          table.table.table-striped.table-bordered
+            caption Choose a query
+            tbody#queries
+              tr
+                td  1. List of units that are vacant
+              tr
+                td  2. Top 10 companies with max number of units
+              tr
+                td  3. Average num of units per Company in each tower
+              tr
+                td
+                  | 4. Biggest Companies in each tower and the number of units they own in that tower
+              tr
+                td  5. Number of visits for each purpose
+              tr
+                td  6. Top 10 owners with max number of visits
+              tr
+                td  7. Tower wise visit count
+              tr
+                td  8. Top 10 Units with max num of visits
+              tr
+                td  9. Visits to empty units, purpose wise
+              tr
+                td  10. The units with max num of visits for each purpose
+      .row(style='position: relative; margin-top: 1rem')
+        .col-lg-9
+          .panel.panel-default
+            .panel-heading
+              h3.panel-title  Raw queries for Mongo shell
+          #query.panel-body
+            code
+              br
+              |  1. List of units that are vacant units.find({owner:{name:&apos;vacant&apos;}},
+              p
+              |  {number:1, _id:0})
+              br
+              br
+              br
+              |  2. Top 10 companies with max number of units
+              br
+              | units.aggregate([
+              p(style='text-indent: 5em;') {$group:{_id : &quot;$owner.name&quot;, count:{$sum:1}}},
+              p(style='text-indent: 5em;') {$match:{_id:{$nin:[&quot;vacant&quot;]}}},
+              p(style='text-indent: 5em;') {$sort:{count:-1}},
+              p(style='text-indent: 5em;') {$limit:10},
+              p(style='text-indent: 5em;')
+                | {$project:{_id:0, name : &quot;$_id&quot;, &quot;Number of units&quot;:&quot;$count&quot;}} ])
+                br
+                br
+                br
+                |  3. Average num of units per Company in each tower
+                br
+                | units.aggregate([
+              p(style='text-indent: 5em;') {$group:{ _id:{tower:&quot;$tower&quot;, owner:&quot;$owner.name&quot;},
+              |  unitsOfOwnerInTower:{$sum:1} } },
+              p
+              p(style='text-indent: 5em;') {$match:{&apos;_id.owner&apos;:{$nin:[&quot;vacant&quot;]}}},
+              p(style='text-indent: 5em;') {$group:{_id:&apos;$_id.tower&apos;, ownersInTower:{$sum:1},
+              |  unitsInTower:{$sum:&apos;$unitsOfOwnerInTower&apos;},
+              p
+              |  &quot;Average num of units per Company&quot; : {$avg:&quot;$unitsOfOwnerInTower&quot;}}} ])
+              br
+              br
+              br
+              |  4. Biggest Companies in each tower and the number of units they own in that tower
+              br
+              | units.aggregate([
+              p(style='text-indent: 5em;') {$group:{_id:{tower:&quot;$tower&quot;, owner:&quot;$owner.name&quot;},
+              |  count:{$sum:1}}},
+              p
+              p(style='text-indent: 5em;') {$match:{&apos;_id.owner&apos;:{$nin:[&quot;vacant&quot;]}}},
+              p(style='text-indent: 5em;') {$sort:{count:-1}},
+              p(style='text-indent: 5em;') {$group:{_id:&quot;$_id.tower&quot;, unitsInTower:{$sum:1},
+              |  biggestOwner:{$first:&quot;$_id.owner&quot;},
+              p
+              |  unitsOwned:{$first:&apos;$count&apos;}}},
+              p
+              p(style='text-indent: 5em;') {$sort:{_id:1}},
+              p(style='text-indent: 5em;')
+                | {$project:{_id:0, tower: &quot;$_id&quot;, &quot;Total units in tower&quot;:&apos;$unitsInTower&apos;, &quot;Biggest Owner&quot;:&apos;$biggestOwner&apos;, &quot;Units owned by them&quot;: &apos;$unitsOwned&apos;}},
+              p(style='text-indent: 5em;')
+                | {$sort:{tower:1}} ])
+                br
+                br
+                br
+                |  //check units.find({tower:1, owner:{&apos;name&apos;:&apos;Cp20&apos;}}).count() //5 5. Number of visits for each purpose logs.aggregate([
+              p(style='text-indent: 5em;') {$group:{_id:&apos;$purpose&apos;, count:{$sum:1}}},
+              p(style='text-indent: 5em;')
+                | {$sort:{count:-1}} ])
+                br
+                br
+                br
+                |  6.Top 10 owners with max number of visits
+                br
+                | units.aggregate([
+              p(style='text-indent: 5em;') {$group:{_id:&quot;$owner.name&quot;, visitCount:{$sum:{$size:&apos;$VisitorLogs&apos;}}}},
+              p(style='text-indent: 5em;') {$sort:{visitCount:-1}},
+              p(style='text-indent: 5em;')
+                | {$limit:10} ])
+                br
+                br
+                br
+                |  7.Tower wise visit count
+                br
+                | units.aggregate([
+              p(style='text-indent: 5em;') {$match:{&apos;VisitorLogs&apos;:{$gt:[]}}},
+              p(style='text-indent: 5em;') {$group:{_id:&quot;$tower&quot;, visitCount:{$sum:{$size:&apos;$VisitorLogs&apos;}}}},
+              p(style='text-indent: 5em;') {$sort:{visitCount:-1}},
+              p(style='text-indent: 5em;') {$limit:10},
+              p(style='text-indent: 5em;')
+                | {$project:{&quot;Tower num&quot; : &quot;$_id&quot;, &quot;Visit Count&quot;:&quot;$visitCount&quot;, _id:0}} ])
+                br
+                br
+                br
+                |  8. Top 10 Units with max num of visits
+                br
+                | units.aggregate([
+              p(style='text-indent: 5em;') {$match:{&apos;VisitorLogs&apos;:{$gt:[]}}},
+              p(style='text-indent: 5em;') {$group:{_id:&quot;$number&quot;, visitCount:{$sum:{$size:&apos;$VisitorLogs&apos;}}}},
+              p(style='text-indent: 5em;') {$sort:{visitCount:-1}},
+              p(style='text-indent: 5em;')
+                | {$limit:10} ])
+                br
+                br
+                br
+                |  9. Visits to empty units, purpose wise
+                br
+                | units.aggregate([
+              p(style='text-indent: 5em;') {$match:{&quot;owner.name&quot;:&quot;vacant&quot;}},
+              |  {$unwind : &quot;$VisitorLogs&quot;},
+              p
+              |  {$lookup:{from:&quot;VisitorLog&quot;, localField:&quot;VisitorLogs&quot;, foreignField:&quot;_id&quot;, as:&quot;log&quot;}},
+              p
+              p(style='text-indent: 5em;') {$group:{_id:&quot;$log.purpose&quot;, count:{$sum:1}}},
+              p(style='text-indent: 5em;')
+                | {$sort:{count:-1}} ])
+                br
+                br
+                br
+                |  10.The units with max num of visits for each purpose
+                br
+                | units.aggregate([
+              p(style='text-indent: 5em;') {$match:{&apos;VisitorLogs&apos;:{$gt:[]}}},
+              |  {$unwind:&apos;$VisitorLogs&apos;},
+              p
+              |  {$lookup:{from:&quot;VisitorLog&quot;, localField:&quot;VisitorLogs&quot;, foreignField:&quot;_id&quot;, as:&quot;log&quot;}},
+              p
+              p(style='text-indent: 5em;') {$group:{_id:{number:&quot;$number&quot;, purpose:&quot;$log.purpose&quot;},
+              |  count:{$sum:1}}},
+              p
+              p(style='text-indent: 5em;') {$sort:{count:-1}},
+              p(style='text-indent: 5em;') {$group:{_id:&quot;$_id.purpose&quot;, unit:{$first:&quot;$_id.number&quot;},
+              |  visits:&quot;$count&quot;}},
+              p
+              p(style='text-indent: 5em;') {$limit:10}
+              |  ])
+              br
+              br
+              br
+        .col-lg-3
+          .panel.panel-default
+            .panel-heading
+              h3.panel-title  Response
+          .panel-body
+            code#response
+    script(type='text/javascript', src='bootstrap.min.js')
+    
